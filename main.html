@@ -614,3 +614,91 @@
           await refreshStats();
           loadSets();
         } catch (e) { showMsg('mint-msg', e.message || 'Mint failed', 'err'); }
+      });
+
+      async function loadMyNfts() {
+        const list = document.getElementById('nft-list');
+        const empty = document.getElementById('nft-empty');
+        list.innerHTML = '';
+        const pbro = getPokeBro(true);
+        if (!pbro || !userAddress) { empty.style.display = 'block'; return; }
+        try {
+          const total = await pbro.totalSupply();
+          const bal = await pbro.balanceOf(userAddress);
+          if (bal === 0n || total === 0n) { empty.style.display = 'block'; return; }
+          empty.style.display = 'none';
+          const maxId = Number(total);
+          let found = 0;
+          for (let id = 0; id < maxId && found < 200; id++) {
+            try {
+              const owner = await pbro.ownerOf(id);
+              if (owner.toLowerCase() === userAddress.toLowerCase()) {
+                found++;
+                const li = document.createElement('li');
+                li.innerHTML = '<span class="id">#' + id + '</span>';
+                list.appendChild(li);
+              }
+            } catch (_) {}
+          }
+          if (found === 0) empty.style.display = 'block';
+        } catch (e) { empty.style.display = 'block'; }
+      }
+
+      document.getElementById('btn-refresh-nft').addEventListener('click', loadMyNfts);
+
+      async function loadConfig() {
+        const grid = document.getElementById('config-grid');
+        grid.innerHTML = '';
+        const pmu = getPokeMenu(true);
+        if (!pmu) {
+          document.getElementById('cfg-treasury').textContent = '—';
+          document.getElementById('cfg-vault').textContent = '—';
+          document.getElementById('cfg-launchpad').textContent = '—';
+          document.getElementById('cfg-pokebro').textContent = '—';
+          return;
+        }
+        try {
+          const cfg = await pmu.getFrontendConfig();
+          document.getElementById('cfg-treasury').textContent = cfg.treasury_;
+          document.getElementById('cfg-vault').textContent = cfg.vault_;
+          document.getElementById('cfg-launchpad').textContent = cfg.launchpadWallet_;
+          document.getElementById('cfg-pokebro').textContent = cfg.nft_ || '—';
+          const items = [
+            { k: 'Next token id', v: cfg.nextTokenId_.toString() },
+            { k: 'Set count', v: cfg.setCounter_.toString() },
+            { k: 'Fee BPS', v: cfg.feeBps_.toString() },
+            { k: 'Paused', v: cfg.platformPaused_ ? 'Yes' : 'No' },
+            { k: 'Deploy block', v: cfg.deployBlock_.toString() }
+          ];
+          items.forEach(function (it) {
+            const div = document.createElement('div');
+            div.className = 'config-item';
+            div.innerHTML = '<span class="k">' + it.k + '</span><div class="v">' + it.v + '</div>';
+            grid.appendChild(div);
+          });
+        } catch (e) {
+          document.getElementById('cfg-treasury').textContent = '—';
+          document.getElementById('cfg-vault').textContent = '—';
+          document.getElementById('cfg-launchpad').textContent = '—';
+          document.getElementById('cfg-pokebro').textContent = '—';
+        }
+      }
+
+      document.getElementById('contract-pokemenu').addEventListener('change', refreshStats);
+      document.getElementById('contract-pokemenu').addEventListener('blur', refreshStats);
+      document.getElementById('contract-pokebro').addEventListener('change', refreshStats);
+      document.getElementById('contract-pokebro').addEventListener('blur', refreshStats);
+      setInterval(refreshStats, 28000);
+
+      function formatWei(wei) {
+        try { return ethers.formatEther(wei); } catch (_) { return '0'; }
+      }
+      function parseWei(eth) {
+        try { return ethers.parseEther(eth); } catch (_) { return 0n; }
+      }
+      async function fetchSetPriceSafe(pmu, setId) {
+        if (!pmu || setId < 1) return null;
+        try { return await pmu.getSetPrice(setId); } catch (_) { return null; }
+      }
+      async function fetchSetInfoSafe(pmu, setId) {
+        if (!pmu || setId < 1) return null;

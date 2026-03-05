@@ -86,3 +86,91 @@
     .stats-row { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-bottom: 1.5rem; }
     .stat-card { flex: 1; min-width: 145px; padding: 1.05rem; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
     .stat-card .label { font-size: 0.73rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+    .stat-card .value { font-family: 'IBM Plex Mono', monospace; font-size: 1.12rem; color: var(--accent); }
+    .stat-card .value.launch { color: var(--launch); }
+    .stat-card .value.nft { color: var(--nft); }
+
+    .tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1.15rem; }
+    .tab { padding: 0.55rem 1.05rem; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 500; }
+    .tab:hover { color: var(--text); }
+    .tab.active { border-color: var(--accent-dim); color: var(--accent); background: var(--glow-accent); }
+
+    .panel { display: none; }
+    .panel.visible { display: block; }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 1.3rem; margin-bottom: 1.15rem; }
+    .card h3 { font-size: 1.08rem; margin-bottom: 0.75rem; color: var(--launch-dim); font-weight: 600; }
+    .card h4 { font-size: 0.92rem; margin: 1rem 0 0.5rem; color: var(--text-dim); font-weight: 500; }
+    label { display: block; font-size: 0.81rem; color: var(--text-dim); margin-bottom: 0.35rem; }
+    .input, select { width: 100%; padding: 0.55rem 0.75rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); margin-bottom: 0.6rem; }
+    .input:focus, select:focus { outline: none; border-color: var(--accent-dim); }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.85rem; }
+    .msg { padding: 0.65rem; border-radius: var(--radius-sm); margin-top: 0.65rem; font-size: 0.85rem; }
+    .msg.ok { background: rgba(0, 212, 170, 0.1); border: 1px solid var(--accent); color: var(--accent-dim); }
+    .msg.err { background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; color: #f87171; }
+    .msg.info { background: var(--glow-launch); border: 1px solid var(--launch-dim); color: var(--launch); }
+
+    .set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.85rem; }
+    .set-item { padding: 1rem; background: var(--bg); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); font-size: 0.86rem; }
+    .set-item .name { font-weight: 600; color: var(--accent); margin-bottom: 0.3rem; }
+    .set-item .price { font-family: 'IBM Plex Mono', monospace; color: var(--launch); }
+    .set-item .meta { color: var(--text-dim); font-size: 0.82rem; margin-top: 0.35rem; }
+    .set-item .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-top: 0.4rem; }
+    .set-item .badge.open { background: rgba(0, 212, 170, 0.15); color: var(--accent); }
+    .set-item .badge.closed { background: rgba(125, 133, 144, 0.2); color: var(--text-dim); }
+
+    .nft-list { list-style: none; }
+    .nft-list li { border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 0.75rem; margin-bottom: 0.55rem; font-size: 0.85rem; font-family: 'IBM Plex Mono', monospace; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .nft-list li:hover { background: var(--bg-panel); }
+    .nft-list .id { color: var(--nft); }
+    .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.7rem; font-size: 0.84rem; }
+    .config-item { padding: 0.6rem; background: var(--bg); border-radius: var(--radius-sm); }
+    .config-item .k { color: var(--text-dim); font-size: 0.77rem; }
+    .config-item .v { font-family: 'IBM Plex Mono', monospace; word-break: break-all; font-size: 0.81rem; }
+    .footer-note { text-align: center; font-size: 0.77rem; color: var(--text-dim); margin-top: 1.85rem; padding-top: 1.05rem; border-top: 1px solid var(--border-soft); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+    .code-ref { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; background: var(--bg); padding: 0.8rem; border-radius: var(--radius-sm); overflow-x: auto; color: var(--text-dim); margin-top: 0.5rem; white-space: pre-wrap; word-break: break-all; }
+    .disclaimer { font-size: 0.8rem; color: var(--text-dim); margin-top: 1rem; padding: 0.75rem; border-left: 3px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <div class="logo">Ridda.ai</div>
+        <p class="tagline">PokeMenu launchpad · PokeBro NFT · Digital collectible sets</p>
+      </div>
+      <div class="header-right">
+        <span id="wallet-addr" class="wallet-addr">Not connected</span>
+        <input type="text" id="contract-pokemenu" class="contract-in" placeholder="PokeMenu 0x..." />
+        <input type="text" id="contract-pokebro" class="contract-in" placeholder="PokeBro 0x..." />
+        <button type="button" id="btn-connect" class="btn primary">Connect</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h1>Digital collectibles & launchpad</h1>
+      <p>Browse collectible sets, mint PokeBro NFTs from the launchpad via PokeMenu, and manage your collection. Ridda.ai connects to PokeMenu (sets + launchpad) and PokeBro NFT (max 100k).</p>
+    </section>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="label">Sets</div><div class="value" id="stat-sets">—</div></div>
+      <div class="stat-card"><div class="label">Next token id</div><div class="value launch" id="stat-nextid">—</div></div>
+      <div class="stat-card"><div class="label">My PokeBro</div><div class="value nft" id="stat-my-nft">—</div></div>
+      <div class="stat-card"><div class="label">Status</div><div class="value" id="stat-paused">—</div></div>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab active" data-tab="sets">Sets</button>
+      <button type="button" class="tab" data-tab="mint">Mint from set</button>
+      <button type="button" class="tab" data-tab="my-nft">My PokeBro NFTs</button>
+      <button type="button" class="tab" data-tab="config">Config</button>
+      <button type="button" class="tab" data-tab="about">About</button>
+    </div>
+
+    <div id="panel-sets" class="panel visible">
+      <div class="card">
+        <h3>Collectible sets</h3>
+        <p style="color: var(--text-dim); font-size: 0.89rem; margin-bottom: 0.9rem;">Sets created on PokeMenu. Each set has a price and max supply; when sale is open you can mint from the Mint tab.</p>
+        <div class="actions"><button type="button" id="btn-refresh-sets" class="btn accent small">Refresh</button></div>

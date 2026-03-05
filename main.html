@@ -174,3 +174,91 @@
         <h3>Collectible sets</h3>
         <p style="color: var(--text-dim); font-size: 0.89rem; margin-bottom: 0.9rem;">Sets created on PokeMenu. Each set has a price and max supply; when sale is open you can mint from the Mint tab.</p>
         <div class="actions"><button type="button" id="btn-refresh-sets" class="btn accent small">Refresh</button></div>
+        <div class="set-grid" id="sets-grid"></div>
+        <div id="sets-empty" style="display:none; color: var(--text-dim); font-size: 0.9rem;">No sets or contract not set.</div>
+      </div>
+    </div>
+
+    <div id="panel-mint" class="panel">
+      <div class="card">
+        <h3>Mint from set</h3>
+        <p style="color: var(--text-dim); font-size: 0.89rem; margin-bottom: 0.9rem;">Select a set with sale open, enter count, and pay in ETH. You receive PokeBro NFTs. Approve only if PokeMenu and PokeBro are configured.</p>
+        <label>Set ID</label>
+        <input type="number" id="mint-setid" class="input" min="1" placeholder="1" value="1" />
+        <label>Count (1–24)</label>
+        <input type="number" id="mint-count" class="input" min="1" max="24" value="1" />
+        <label>Required ETH (from contract)</label>
+        <input type="text" id="mint-price-display" class="input" placeholder="—" readonly />
+        <div class="actions">
+          <button type="button" id="btn-mint" class="btn primary">Mint</button>
+        </div>
+        <div id="mint-msg" class="msg" style="display:none;"></div>
+        <p style="font-size: 0.81rem; color: var(--text-dim); margin-top: 0.7rem;">Max 24 mints per transaction. Payment is split: fee to treasury, then half to set creator and half to launchpad wallet. Ensure you have enough ETH for (price × count).</p>
+      </div>
+      <div class="card">
+        <h4>Set details (for selected set)</h4>
+        <div id="mint-set-details" style="color: var(--text-dim); font-size: 0.86rem;">Select a set and open this tab to see price and remaining supply.</div>
+      </div>
+    </div>
+
+    <div id="panel-my-nft" class="panel">
+      <div class="card">
+        <h3>My PokeBro NFTs</h3>
+        <p style="color: var(--text-dim); font-size: 0.89rem; margin-bottom: 0.8rem;">NFTs you own from the PokeBro collection (minted via PokeMenu launchpad or otherwise).</p>
+        <div class="actions"><button type="button" id="btn-refresh-nft" class="btn accent small">Refresh</button></div>
+        <ul id="nft-list" class="nft-list"></ul>
+        <div id="nft-empty" style="display:none; color: var(--text-dim); font-size: 0.9rem;">No NFTs or PokeBro contract not set.</div>
+      </div>
+    </div>
+
+    <div id="panel-config" class="panel">
+      <div class="card">
+        <h3>PokeMenu & PokeBro config</h3>
+        <p style="color: var(--text-dim); font-size: 0.89rem; margin-bottom: 0.8rem;">Addresses and settings. PokeMenu: treasury, vault, launchpad wallet immutable; PokeBro: max supply 100000.</p>
+        <div class="config-grid" id="config-grid"></div>
+        <h4>PokeMenu addresses</h4>
+        <div class="config-grid">
+          <div class="config-item"><span class="k">Treasury</span><div class="v" id="cfg-treasury">—</div></div>
+          <div class="config-item"><span class="k">Vault</span><div class="v" id="cfg-vault">—</div></div>
+          <div class="config-item"><span class="k">Launchpad wallet</span><div class="v" id="cfg-launchpad">—</div></div>
+          <div class="config-item"><span class="k">PokeBro NFT</span><div class="v" id="cfg-pokebro">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-about" class="panel">
+      <div class="card">
+        <h3>About Ridda.ai</h3>
+        <p style="color: var(--text-dim); font-size: 0.91rem; line-height: 1.65;">Ridda.ai is the web interface for PokeMenu (digital collectible set registry and launchpad) and PokeBro NFT (fixed-cap collection, max 100000). PokeMenu lets the owner create sets with a name hash, max per set, and price; opening a sale allows users to mint from that set by paying in ETH. Minted tokens are PokeBro NFTs. Fees go to treasury; creator and launchpad wallet receive shares. Deploy PokeBro first, then PokeMenu; set PokeMenu as PokeBro minter and set PokeBro address in PokeMenu.</p>
+        <p style="color: var(--text-dim); font-size: 0.83rem; margin-top: 0.65rem;">PokeMenu: PMU_MAX_SETS 64, PMU_POKEBRO_CAP 100000, PMU_MAX_MINT_PER_TX 24. PokeBro: PBRO_MAX_SUPPLY 100000. Not financial advice.</p>
+      </div>
+      <div class="card">
+        <h3>How it works</h3>
+        <ul style="color: var(--text-dim); font-size: 0.89rem; line-height: 1.7; margin-left: 1.25rem;">
+          <li><strong style="color: var(--accent);">Sets:</strong> Owner creates a set with createSet(nameHash, maxPerSet, priceWei). Each set gets an ID. Owner can open/close sale and update price.</li>
+          <li><strong style="color: var(--accent);">Mint:</strong> When a set sale is open, call mintFromSet(setId, count) with msg.value = priceWei * count. PokeMenu mints PokeBro NFTs to you (token IDs from nextTokenId). Fee goes to treasury; half of the remainder to set creator, half to launchpad wallet.</li>
+          <li><strong style="color: var(--accent);">PokeBro:</strong> ERC721-style NFT, max supply 100000. Only the minter (PokeMenu) can mint. Owner can change minter to another address if needed.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Deployment order</h4>
+        <p style="color: var(--text-dim); font-size: 0.86rem;">1) Deploy PokeBro (constructor has no args; minter is deployer). 2) Deploy PokeMenu (constructor has no args; treasury, vault, launchpad wallet are set internally). 3) Call PokeBro.setMinter(pokeMenuAddress). 4) Call PokeMenu.setPokeBroNft(pokeBroAddress). 5) Create sets and open sales as needed.</p>
+      </div>
+      <div class="card">
+        <h4>Constants</h4>
+        <div class="config-grid">
+          <div class="config-item"><span class="k">PMU_MAX_SETS</span><div class="v">64</div></div>
+          <div class="config-item"><span class="k">PMU_POKEBRO_CAP</span><div class="v">100000</div></div>
+          <div class="config-item"><span class="k">PMU_MAX_MINT_PER_TX</span><div class="v">24</div></div>
+          <div class="config-item"><span class="k">PBRO_MAX_SUPPLY</span><div class="v">100000</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>FAQ</h4>
+        <dl style="color: var(--text-dim); font-size: 0.87rem; line-height: 1.65;">
+          <dt style="color: var(--accent); margin-top: 0.6rem;">What is PokeMenu?</dt>
+          <dd>PokeMenu is a launchpad contract that manages collectible sets. Each set has a price and max supply. When the owner opens a sale, users can mint from that set by paying in ETH; they receive PokeBro NFTs.</dd>
+          <dt style="color: var(--accent); margin-top: 0.6rem;">What is PokeBro?</dt>
+          <dd>PokeBro is an NFT contract with a fixed max supply of 100000. Only the minter (typically PokeMenu) can mint. You can transfer and trade PokeBro NFTs like any ERC721.</dd>
+          <dt style="color: var(--accent); margin-top: 0.6rem;">Where does my payment go?</dt>
+          <dd>A fee (configurable BPS) goes to the PokeMenu treasury. The rest is split 50/50 between the set creator and the launchpad wallet.</dd>

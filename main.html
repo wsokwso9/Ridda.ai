@@ -526,3 +526,91 @@
           document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
           document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('visible'); });
           tab.classList.add('active');
+          const id = 'panel-' + tab.getAttribute('data-tab');
+          const panel = document.getElementById(id);
+          if (panel) panel.classList.add('visible');
+          if (id === 'panel-sets') loadSets();
+          if (id === 'panel-mint') { updateMintPrice(); loadMintSetDetails(); }
+          if (id === 'panel-my-nft') loadMyNfts();
+          if (id === 'panel-config') loadConfig();
+        });
+      });
+
+      async function loadSets() {
+        const grid = document.getElementById('sets-grid');
+        const empty = document.getElementById('sets-empty');
+        grid.innerHTML = '';
+        const pmu = getPokeMenu(true);
+        if (!pmu) { empty.style.display = 'block'; return; }
+        try {
+          const ids = await pmu.getSetIds();
+          if (!ids || ids.length === 0) { empty.style.display = 'block'; return; }
+          empty.style.display = 'none';
+          for (let i = 0; i < ids.length; i++) {
+            const setId = typeof ids[i] === 'bigint' ? Number(ids[i]) : ids[i];
+            if (setId === 0) continue;
+            const info = await pmu.getSetInfo(setId);
+            const div = document.createElement('div');
+            div.className = 'set-item';
+            const nameHash = info.nameHash || info[0];
+            const priceWei = info.priceWei ?? info[2];
+            const minted = info.mintedFromSet ?? info[4];
+            const saleOpen = info.saleOpen ?? info[5];
+            const maxPerSet = info.maxPerSet ?? info[1];
+            div.innerHTML = '<div class="name">Set #' + setId + '</div><div class="price">' + ethers.formatEther(priceWei) + ' ETH</div><div class="meta">Minted ' + minted.toString() + ' / ' + maxPerSet.toString() + '</div><span class="badge ' + (saleOpen ? 'open' : 'closed') + '">' + (saleOpen ? 'Sale open' : 'Closed') + '</span>';
+            grid.appendChild(div);
+          }
+        } catch (e) { empty.style.display = 'block'; }
+      }
+
+      document.getElementById('btn-refresh-sets').addEventListener('click', loadSets);
+
+      async function updateMintPrice() {
+        const setId = parseInt(document.getElementById('mint-setid').value, 10) || 1;
+        const count = parseInt(document.getElementById('mint-count').value, 10) || 1;
+        const el = document.getElementById('mint-price-display');
+        const pmu = getPokeMenu(true);
+        if (!pmu) { el.placeholder = 'Set PokeMenu'; return; }
+        try {
+          const priceWei = await pmu.getSetPrice(setId);
+          const total = priceWei * BigInt(count);
+          el.placeholder = ethers.formatEther(total) + ' ETH';
+        } catch (_) { el.placeholder = '—'; }
+      }
+      document.getElementById('mint-setid').addEventListener('input', function () { updateMintPrice(); loadMintSetDetails(); });
+      document.getElementById('mint-count').addEventListener('input', updateMintPrice);
+
+      async function loadMintSetDetails() {
+        const el = document.getElementById('mint-set-details');
+        if (!el) return;
+        const setId = parseInt(document.getElementById('mint-setid').value, 10) || 1;
+        const pmu = getPokeMenu(true);
+        if (!pmu) { el.textContent = 'Set PokeMenu address.'; return; }
+        try {
+          const info = await pmu.getSetInfo(setId);
+          const maxPerSet = info.maxPerSet ?? info[1];
+          const minted = info.mintedFromSet ?? info[4];
+          const saleOpen = info.saleOpen ?? info[5];
+          const priceWei = info.priceWei ?? info[2];
+          const remaining = maxPerSet > minted ? maxPerSet - minted : 0n;
+          el.innerHTML = 'Price: ' + ethers.formatEther(priceWei) + ' ETH · Minted: ' + minted.toString() + ' / ' + maxPerSet.toString() + ' · Remaining: ' + remaining.toString() + ' · Sale: ' + (saleOpen ? 'Open' : 'Closed');
+        } catch (e) { el.textContent = 'Set not found or error.'; }
+      }
+
+      document.getElementById('btn-mint').addEventListener('click', async function () {
+        hideMsg('mint-msg');
+        const pmu = getPokeMenu(false);
+        if (!pmu || !userAddress) { showMsg('mint-msg', 'Connect wallet and set PokeMenu.', 'err'); return; }
+        const setId = parseInt(document.getElementById('mint-setid').value, 10) || 1;
+        const count = parseInt(document.getElementById('mint-count').value, 10) || 1;
+        if (count < 1 || count > 24) { showMsg('mint-msg', 'Count 1–24.', 'err'); return; }
+        try {
+          const priceWei = await pmu.getSetPrice(setId);
+          const total = priceWei * BigInt(count);
+          const tx = await pmu.mintFromSet(setId, count, { value: total });
+          showMsg('mint-msg', 'Tx: ' + tx.hash, 'info');
+          await tx.wait();
+          showMsg('mint-msg', 'Minted.', 'ok');
+          await refreshStats();
+          loadSets();
+        } catch (e) { showMsg('mint-msg', e.message || 'Mint failed', 'err'); }

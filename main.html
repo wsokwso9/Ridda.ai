@@ -702,3 +702,88 @@
       }
       async function fetchSetInfoSafe(pmu, setId) {
         if (!pmu || setId < 1) return null;
+        try { return await pmu.getSetInfo(setId); } catch (_) { return null; }
+      }
+      function truncateAddr(addr) {
+        if (!addr || addr.length < 10) return addr;
+        return addr.slice(0, 6) + '…' + addr.slice(-4);
+      }
+      function hasProvider() { return typeof window !== 'undefined' && !!window.ethereum; }
+      function getChainId() { return window.ethereum && window.ethereum.request ? window.ethereum.request({ method: 'eth_chainId' }) : null; }
+      window.riddaRefresh = refreshStats;
+      window.riddaLoadSets = loadSets;
+      window.riddaLoadMyNfts = loadMyNfts;
+      window.riddaLoadConfig = loadConfig;
+
+      var RIDDA_CONSTANTS = {
+        PMU_MAX_SETS: 64,
+        PMU_POKEBRO_CAP: 100000,
+        PMU_MAX_MINT_PER_TX: 24,
+        PBRO_MAX_SUPPLY: 100000,
+        RIDDA_VERSION: '1.0.0',
+        REFRESH_INTERVAL_MS: 28000
+      };
+      function getRiddaConstant(name) { return RIDDA_CONSTANTS[name]; }
+      async function validatePokeMenuAddress(addr) {
+        if (!addr || addr.length !== 42 || !addr.startsWith('0x')) return false;
+        try { const c = new ethers.Contract(addr, ['function getFrontendConfig() view returns (address,uint256,uint256,uint256,bool,uint256,address,address,address)'], provider || ethers.getDefaultProvider()); await c.getFrontendConfig(); return true; } catch (_) { return false; }
+      }
+      async function validatePokeBroAddress(addr) {
+        if (!addr || addr.length !== 42 || !addr.startsWith('0x')) return false;
+        try { const c = new ethers.Contract(addr, ['function totalSupply() view returns (uint256)'], provider || ethers.getDefaultProvider()); await c.totalSupply(); return true; } catch (_) { return false; }
+      }
+      function getPokeMenuAddressFromInput() { return getPokeMenuAddr(); }
+      function getPokeBroAddressFromInput() { return getPokeBroAddr(); }
+      async function refreshAll() { await refreshStats(); await loadSets(); await loadMyNfts(); await loadConfig(); }
+      window.riddaValidatePokeMenu = validatePokeMenuAddress;
+      window.riddaValidatePokeBro = validatePokeBroAddress;
+      window.riddaRefreshAll = refreshAll;
+
+      var RIDDA_SET_FIELDS = ['nameHash', 'maxPerSet', 'priceWei', 'creator', 'mintedFromSet', 'saleOpen', 'createdAtBlock'];
+      var RIDDA_CONFIG_FIELDS = ['nft_', 'nextTokenId_', 'setCounter_', 'feeBps_', 'platformPaused_', 'deployBlock_', 'treasury_', 'vault_', 'launchpadWallet_'];
+      function getSetFieldNames() { return RIDDA_SET_FIELDS.slice(); }
+      function getConfigFieldNames() { return RIDDA_CONFIG_FIELDS.slice(); }
+      function formatSetId(id) { return 'Set #' + (typeof id === 'bigint' ? id.toString() : id); }
+      function formatTokenId(id) { return '#' + (typeof id === 'bigint' ? id.toString() : id); }
+      function clampMintCount(n) { var x = parseInt(n, 10); if (isNaN(x) || x < 1) return 1; if (x > 24) return 24; return x; }
+      function clampSetId(n) { var x = parseInt(n, 10); if (isNaN(x) || x < 1) return 1; return x; }
+      document.getElementById('mint-count').addEventListener('blur', function () { var v = clampMintCount(this.value); if (this.value !== String(v)) this.value = v; });
+      document.getElementById('mint-setid').addEventListener('blur', function () { var v = clampSetId(this.value); if (this.value !== String(v)) this.value = v; });
+
+      function getRequiredEthForMint(setId, count) { return getPokeMenu(true).then(function (c) { return c ? c.getSetPrice(setId).then(function (p) { return ethers.formatEther(p * BigInt(count)); }) : null; }); }
+      function isSaleOpen(setId) { return getPokeMenu(true).then(function (c) { return c ? c.getSetInfo(setId).then(function (i) { return i.saleOpen ?? i[5]; }) : false; }); }
+      function getMyBalance() { return getPokeBro(true).then(function (c) { return c && userAddress ? c.balanceOf(userAddress).then(function (b) { return b.toString(); }) : '0'; }); }
+      function getTotalMinted() { return getPokeBro(true).then(function (c) { return c ? c.totalSupply().then(function (t) { return t.toString(); }) : '0'; }); }
+      window.riddaGetRequiredEth = getRequiredEthForMint;
+      window.riddaIsSaleOpen = isSaleOpen;
+      window.riddaGetMyBalance = getMyBalance;
+      window.riddaGetTotalMinted = getTotalMinted;
+      window.addEventListener('load', function () { if (getPokeMenuAddr() || getPokeBroAddr()) refreshStats(); });
+    })();
+  </script>
+  <!-- Ridda.ai: PokeMenu launchpad + PokeBro NFT interface. PMU_MAX_SETS=64, PMU_POKEBRO_CAP=100000, PMU_MAX_MINT_PER_TX=24, PBRO_MAX_SUPPLY=100000. -->
+  <!-- Deployment: 1) PokeBro 2) PokeMenu 3) PokeBro.setMinter(PokeMenu) 4) PokeMenu.setPokeBroNft(PokeBro). -->
+  <!-- Owner: createSet, openSale, closeSale, updateSetPrice, setPokeBroNft, setPlatformPaused, setFeeBps, sweep* -->
+  <!-- User: mintFromSet(setId, count) payable. Reads: getFrontendConfig, getSetIds, getSetInfo, getSetPrice, canMintFromSet -->
+  <!-- PokeBro: balanceOf, totalSupply, ownerOf. Minter only: mint(to, tokenId). Owner: setMinter -->
+  <!-- Ridda.ai v1.0.0 | PokeMenu (PMU) | PokeBro (PBRO) | Digital collectibles launchpad -->
+  <!-- Connect wallet -> Set PokeMenu + PokeBro addresses -> Sets tab: view sets and sale status -->
+  <!-- Mint tab: set ID, count 1-24, required ETH shown -> Mint -> Receive PokeBro NFTs -->
+  <!-- My PokeBro NFTs: lists token IDs you own (scan limited to 200) -->
+  <!-- Config tab: treasury, vault, launchpad wallet, PokeBro addr, next token id, set count, fee BPS, paused -->
+  <!-- All transactions require wallet signature; no keys stored; verify addresses on-chain -->
+  <!-- Fee: (payment * feeBps) / 10000 to treasury; half of remainder to creator, half to launchpad wallet -->
+  <!-- Set: nameHash (bytes32), maxPerSet, priceWei, creator, mintedFromSet, saleOpen, createdAtBlock -->
+  <!-- getFrontendConfig returns: nft_, nextTokenId_, setCounter_, feeBps_, platformPaused_, deployBlock_, treasury_, vault_, launchpadWallet_ -->
+  <!-- Ridda.ai endpoints: none; all data from chain. Wallet: MetaMask / Injected provider. -->
+  <!-- PokeMenu constructor: no args. PokeBro constructor: no args. -->
+  <!-- Fee: treasury. Creator: half of (total - fee). Launchpad: half of (total - fee). -->
+  <!-- Max sets 64. Max mint per tx 24. PokeBro cap 100000. -->
+  <!-- UI: Sets | Mint | My PokeBro NFTs | Config | About -->
+  <!-- Refresh stats every 28s. Blur on mint inputs clamps set ID and count. -->
+  <!-- PokeMenu treasury/vault/launchpadWallet immutable. PokeBro minter set by owner. -->
+  <!-- Ridda.ai v1.0.0 | Syne + IBM Plex Mono | ethers v6 -->
+  <!-- Single-file HTML; no build step. -->
+  <!-- End Ridda.ai -->
+</body>
+</html>

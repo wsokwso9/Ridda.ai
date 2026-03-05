@@ -350,3 +350,91 @@
       <div class="card">
         <h4>PokeMenu errors (reference)</h4>
         <p style="color: var(--text-dim); font-size: 0.8rem;">PMU_ZeroAddress, PMU_ZeroAmount, PMU_PlatformPaused, PMU_SetNotFound, PMU_SaleNotOpen, PMU_SaleAlreadyOpen, PMU_SaleAlreadyClosed, PMU_ExceedsSetSupply, PMU_ExceedsGlobalSupply, PMU_InsufficientPayment, PMU_InvalidFeeBps, PMU_TransferFailed, PMU_Reentrancy, PMU_NotCreator, PMU_MaxSetsReached, PMU_PokeBroNotSet, PMU_ArrayLengthMismatch, PMU_BatchTooLarge, PMU_ZeroMint, PMU_InvalidSetId, PMU_InvalidIndex.</p>
+      </div>
+      <div class="card">
+        <h4>PokeBro events and errors (reference)</h4>
+        <p style="color: var(--text-dim); font-size: 0.8rem;">Events: Transfer, Approval, ApprovalForAll, MinterSet, Minted. Errors: PBRO_ZeroAddress, PBRO_NotMinter, PBRO_ExceedsMaxSupply, PBRO_AlreadyMinted, PBRO_NotOwner, PBRO_InvalidTokenId, PBRO_NotOwnerNorApproved.</p>
+      </div>
+      <div class="card">
+        <h4>Summary</h4>
+        <p style="color: var(--text-dim); font-size: 0.86rem; line-height: 1.65;">Ridda.ai connects your wallet to PokeMenu (launchpad) and PokeBro (NFT). You can view sets, mint when sale is open, and view your PokeBro balance. All state is on-chain; this site does not store data. Keep your contract addresses saved; you need both to use the full flow. For deployers: deploy PokeBro then PokeMenu, set minter and NFT address, create sets, open sales. For users: connect wallet, enter addresses, mint from open sets, check My PokeBro NFTs.</p>
+      </div>
+      <div class="card">
+        <h4>Technical details</h4>
+        <ul style="color: var(--text-dim); font-size: 0.84rem; line-height: 1.6; margin-left: 1.25rem;">
+          <li>PokeMenu uses ReentrancyGuard and Pausable (OpenZeppelin). Constructor sets treasury, vault, launchpadWallet to fixed addresses; no constructor args.</li>
+          <li>PokeBro has no external dependencies; custom ERC721-style implementation. name "PokeBro NFT", symbol "PBRO".</li>
+          <li>Mint flow: user sends ETH to mintFromSet; contract computes fee and creator/launchpad shares, forwards ETH, then calls IPokeBroNft(pokeBroNft).mint(msg.sender, nextTokenId) in a loop; nextTokenId increments.</li>
+          <li>Set IDs start at 1; setCounter is the current number of sets. getSetIds() returns an array of all set IDs.</li>
+          <li>tokenIdToSetId mapping on PokeMenu records which set each token ID came from (for display or indexing).</li>
+          <li>Snapshot events are emitted when mints occur; setSnapshots and _setSnapshotIds allow querying history per set.</li>
+          <li>feeBps is in basis points; max 400 (PMU_MAX_FEE_BPS). Default 85. Owner can change via setFeeBps.</li>
+          <li>Platform pause (setPlatformPaused) stops mintFromSet; owner and OpenZeppelin pause() are separate (Pausable).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Checklist: deployer</h4>
+        <ol style="color: var(--text-dim); font-size: 0.83rem; line-height: 1.6; margin-left: 1.25rem;">
+          <li>Deploy PokeBro contract (no args). Note the deployed address.</li>
+          <li>Deploy PokeMenu contract (no args). Note the deployed address.</li>
+          <li>Call PokeBro.setMinter(pokeMenuAddress) from the PokeBro owner account.</li>
+          <li>Call PokeMenu.setPokeBroNft(pokeBroAddress) from the PokeMenu owner account.</li>
+          <li>Create one or more sets: PokeMenu.createSet(keccak256("Set Name"), maxPerSet, priceWei).</li>
+          <li>Open a set for sale: PokeMenu.openSale(setId).</li>
+          <li>Share PokeMenu and PokeBro contract addresses with users (e.g. for Ridda.ai).</li>
+          <li>Optional: adjust fee with setFeeBps(bps), or pause with setPlatformPaused(true).</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h4>Checklist: user</h4>
+        <ol style="color: var(--text-dim); font-size: 0.83rem; line-height: 1.6; margin-left: 1.25rem;">
+          <li>Install or use a Web3 wallet (e.g. MetaMask) and ensure you have ETH for gas and mint cost.</li>
+          <li>Open Ridda.ai (or the deployed frontend).</li>
+          <li>Click Connect and approve the wallet connection.</li>
+          <li>Enter the PokeMenu contract address in the first input field.</li>
+          <li>Enter the PokeBro contract address in the second input field.</li>
+          <li>Open the Sets tab and confirm at least one set shows "Sale open".</li>
+          <li>Open the Mint from set tab; enter the set ID (e.g. 1) and count (1–24).</li>
+          <li>Confirm the required ETH shown matches (set price × count). Send that amount when you click Mint.</li>
+          <li>Sign the transaction in your wallet. After confirmation, PokeBro NFTs will be in your wallet.</li>
+          <li>Open My PokeBro NFTs to see your token IDs (or check your wallet / block explorer).</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h4>Notes</h4>
+        <p style="color: var(--text-dim); font-size: 0.85rem; line-height: 1.65;">Name hash for a set is typically keccak256(abi.encodePacked("Human Readable Name")) in Solidity; in JS you can use ethers.keccak256(ethers.toUtf8Bytes("Name")). The same set ID is used across the UI and contract. Token IDs are globally sequential (0 to 99999); they are not per-set. If you integrate a marketplace, use the PokeBro contract address and standard ERC721 approval/transfer flows. Ridda.ai does not handle metadata or IPFS; that is outside the scope of the launchpad and NFT contracts described here.</p>
+        <p style="color: var(--text-dim); font-size: 0.84rem; margin-top: 0.6rem;">Constants: PMU_BPS_BASE 10000, PMU_SET_SALT and PMU_LAUNCHPAD_DOMAIN for domain separation. PokeBro PBRO_DOMAIN and PBRO_CHAIN_SALT. Immutable addresses in PokeMenu: treasury, vault, launchpadWallet (set in constructor; verify on deployment).</p>
+      </div>
+      <div class="card">
+        <h4>API summary</h4>
+        <p style="color: var(--text-dim); font-size: 0.82rem;">PokeMenu: getFrontendConfig(), getSetIds(), getSetInfo(setId), getSetPrice(setId), mintFromSet(setId, count) payable, canMintFromSet(setId, count). Owner: createSet, openSale, closeSale, updateSetPrice, setPokeBroNft, setPlatformPaused, setFeeBps, sweepTreasury, sweepVault, sweepLaunchpad. PokeBro: balanceOf(account), totalSupply(), ownerOf(tokenId), approve, setApprovalForAll, transferFrom, safeTransferFrom. Owner: setMinter. Minter: mint(to, tokenId).</p>
+      </div>
+      <div class="card">
+        <h4>Reference: set info fields</h4>
+        <p style="color: var(--text-dim); font-size: 0.81rem;">getSetInfo(setId) returns: nameHash (bytes32), maxPerSet (uint256), priceWei (uint256), creator (address), mintedFromSet (uint256), saleOpen (bool), createdAtBlock (uint256). Use these to display set details and compute remaining supply as maxPerSet - mintedFromSet.</p>
+      </div>
+      <div class="card">
+        <h4>Quick reference</h4>
+        <p style="color: var(--text-dim); font-size: 0.81rem;">PMU = PokeMenu. PBRO = PokeBro. Set ID starts at 1. Token ID starts at 0. Max 24 mints per tx. Max 100000 PokeBro tokens. Max 64 sets. Fee BPS max 400. Connect wallet first; then set both contract addresses; then use Sets / Mint / My PokeBro NFTs. Config tab shows on-chain config. About tab has deployment and usage docs.</p>
+      </div>
+      <div class="card">
+        <h4>Ridda.ai</h4>
+        <p style="color: var(--text-dim); font-size: 0.8rem;">Ridda.ai is the web interface for PokeMenu and PokeBro. It requires a browser with an Ethereum provider (e.g. MetaMask). Enter the deployed PokeMenu and PokeBro addresses for your chain. The interface reads set list, set details, config, and your PokeBro balance; it sends mint transactions when you click Mint. No backend; all reads and writes go to the blockchain. Not financial or legal advice. Verify contract addresses on a block explorer before use.</p>
+      </div>
+      <div class="card">
+        <h4>Links (placeholder)</h4>
+        <p style="color: var(--text-dim); font-size: 0.8rem;">Documentation: see About and FAQ above. Contract source: deploy from the provided Solidity files (PokeMenu.sol, PokeBro.sol). Block explorer: use your chain’s explorer and paste PokeMenu or PokeBro address to view transactions and state. Support: contact the contract deployer or project maintainer.</p>
+      </div>
+    </div>
+
+    <p class="footer-note">Ridda.ai · PokeMenu (PMU) · PokeBro NFT (PBRO) · Digital collectibles · Verify contracts on-chain.</p>
+  </div>
+
+  <script>
+    (function () {
+      const PMU_ABI = [
+        'function getFrontendConfig() view returns (address nft_, uint256 nextTokenId_, uint256 setCounter_, uint256 feeBps_, bool platformPaused_, uint256 deployBlock_, address treasury_, address vault_, address launchpadWallet_)',
+        'function getSetIds() view returns (uint256[])',
+        'function getSetInfo(uint256 setId) view returns (bytes32 nameHash, uint256 maxPerSet, uint256 priceWei, address creator, uint256 mintedFromSet, bool saleOpen, uint256 createdAtBlock)',
+        'function mintFromSet(uint256 setId, uint256 count) payable returns (uint256 startTokenId)',
+        'function getSetPrice(uint256 setId) view returns (uint256)',

@@ -438,3 +438,91 @@
         'function getSetInfo(uint256 setId) view returns (bytes32 nameHash, uint256 maxPerSet, uint256 priceWei, address creator, uint256 mintedFromSet, bool saleOpen, uint256 createdAtBlock)',
         'function mintFromSet(uint256 setId, uint256 count) payable returns (uint256 startTokenId)',
         'function getSetPrice(uint256 setId) view returns (uint256)',
+        'function canMintFromSet(uint256 setId, uint256 count) view returns (bool)'
+      ];
+      const PBRO_ABI = [
+        'function balanceOf(address) view returns (uint256)',
+        'function totalSupply() view returns (uint256)',
+        'function ownerOf(uint256 tokenId) view returns (address)'
+      ];
+      let provider = null;
+      let signer = null;
+      let userAddress = null;
+
+      const walletEl = document.getElementById('wallet-addr');
+      const statSets = document.getElementById('stat-sets');
+      const statNextId = document.getElementById('stat-nextid');
+      const statMyNft = document.getElementById('stat-my-nft');
+      const statPaused = document.getElementById('stat-paused');
+
+      function getPokeMenuAddr() { return (document.getElementById('contract-pokemenu').value || '').trim(); }
+      function getPokeBroAddr() { return (document.getElementById('contract-pokebro').value || '').trim(); }
+      function getPokeMenu(readOnly) {
+        const addr = getPokeMenuAddr();
+        if (!addr) return null;
+        return new ethers.Contract(addr, PMU_ABI, readOnly !== false ? (provider || ethers.getDefaultProvider()) : signer);
+      }
+      function getPokeBro(readOnly) {
+        const addr = getPokeBroAddr();
+        if (!addr) return null;
+        return new ethers.Contract(addr, PBRO_ABI, readOnly !== false ? (provider || ethers.getDefaultProvider()) : signer);
+      }
+
+      function showMsg(id, text, type) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text;
+        el.className = 'msg ' + (type || 'info');
+        el.style.display = 'block';
+      }
+      function hideMsg(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+      async function connectWallet() {
+        try {
+          if (!window.ethereum) { showMsg('mint-msg', 'No Ethereum provider.', 'err'); return; }
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          if (accounts.length) {
+            userAddress = accounts[0];
+            walletEl.textContent = userAddress.slice(0, 6) + '…' + userAddress.slice(-4);
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            await refreshStats();
+          }
+        } catch (e) { showMsg('mint-msg', e.message || 'Connect failed', 'err'); }
+      }
+
+      async function refreshStats() {
+        const pmu = getPokeMenu(true);
+        const pbro = getPokeBro(true);
+        if (!pmu) {
+          statSets.textContent = '—';
+          statNextId.textContent = '—';
+          statPaused.textContent = '—';
+        } else {
+          try {
+            const cfg = await pmu.getFrontendConfig();
+            statSets.textContent = cfg.setCounter_.toString();
+            statNextId.textContent = cfg.nextTokenId_.toString();
+            statPaused.textContent = cfg.platformPaused_ ? 'Paused' : 'Active';
+          } catch (e) {
+            statSets.textContent = '—';
+            statNextId.textContent = '—';
+            statPaused.textContent = '—';
+          }
+        }
+        if (!pbro || !userAddress) statMyNft.textContent = '—';
+        else {
+          try {
+            const bal = await pbro.balanceOf(userAddress);
+            statMyNft.textContent = bal.toString();
+          } catch (e) { statMyNft.textContent = '—'; }
+        }
+      }
+
+      document.getElementById('btn-connect').addEventListener('click', connectWallet);
+
+      document.querySelectorAll('.tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+          document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('visible'); });
+          tab.classList.add('active');

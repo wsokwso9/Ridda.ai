@@ -262,3 +262,91 @@
           <dd>PokeBro is an NFT contract with a fixed max supply of 100000. Only the minter (typically PokeMenu) can mint. You can transfer and trade PokeBro NFTs like any ERC721.</dd>
           <dt style="color: var(--accent); margin-top: 0.6rem;">Where does my payment go?</dt>
           <dd>A fee (configurable BPS) goes to the PokeMenu treasury. The rest is split 50/50 between the set creator and the launchpad wallet.</dd>
+          <dt style="color: var(--accent); margin-top: 0.6rem;">Why do I need two contract addresses?</dt>
+          <dd>PokeMenu is the launchpad (sets + mint logic); PokeBro is the NFT contract. You set both so the UI can read sets from PokeMenu and your balance from PokeBro.</dd>
+          <dt style="color: var(--accent); margin-top: 0.6rem;">Can I mint if sale is closed?</dt>
+          <dd>No. Only sets with sale open accept mintFromSet. The Sets tab shows which sets are open.</dd>
+          <dt style="color: var(--accent); margin-top: 0.6rem;">What is the max supply?</dt>
+          <dd>PokeBro has a global cap of 100000 tokens. PokeMenu will not mint beyond that. Each set has its own max per set (set by owner).</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h4>Tips</h4>
+        <p style="color: var(--text-dim); font-size: 0.88rem; line-height: 1.65;">Always verify contract addresses on-chain (e.g. block explorer) before connecting and minting. This UI does not custody any funds; all transactions are signed in your wallet. If a set shows "Sale open", you can mint; required ETH is (set price × count). PokeMenu and PokeBro are separate contracts: deploy both, wire minter and NFT address as described in Deployment order. For large collections, "My PokeBro NFTs" may scan up to 200 token IDs; for full enumeration use a subgraph or indexer.</p>
+      </div>
+      <div class="card">
+        <h4>Contract reference (PokeMenu)</h4>
+        <p style="color: var(--text-dim); font-size: 0.82rem;">Key functions: getFrontendConfig(), getSetIds(), getSetInfo(setId), getSetPrice(setId), mintFromSet(setId, count) payable, canMintFromSet(setId, count). Owner: createSet, openSale, closeSale, updateSetPrice, setPokeBroNft, setPlatformPaused, setFeeBps.</p>
+        <div class="code-ref">getFrontendConfig() => nft_, nextTokenId_, setCounter_, feeBps_, platformPaused_, deployBlock_, treasury_, vault_, launchpadWallet_</div>
+      </div>
+      <div class="card">
+        <h4>Contract reference (PokeBro)</h4>
+        <p style="color: var(--text-dim); font-size: 0.82rem;">Key functions: balanceOf(account), totalSupply(), ownerOf(tokenId). Only minter can call mint(to, tokenId). Owner can setMinter(address). Max supply 100000.</p>
+      </div>
+      <div class="card disclaimer">
+        <strong>Disclaimer.</strong> Ridda.ai is a front-end only; it does not store keys or custody assets. You are responsible for verifying contract addresses and parameters. Use at your own risk. Not financial or legal advice.
+      </div>
+      <div class="card">
+        <h4>Security & best practices</h4>
+        <p style="color: var(--text-dim); font-size: 0.86rem; line-height: 1.65;">Use a hardware or dedicated wallet for minting. Confirm the PokeMenu and PokeBro contract addresses on the block explorer (same chain you are on). Do not share your seed phrase or private key with this or any site. Check that the set sale is open and remaining supply is sufficient before sending a transaction. If the platform is paused, mintFromSet will revert. After deployment, ensure PokeBro minter is set to PokeMenu and PokeMenu has the PokeBro NFT address set so mints succeed.</p>
+      </div>
+      <div class="card">
+        <h4>Glossary</h4>
+        <dl style="color: var(--text-dim); font-size: 0.84rem; line-height: 1.6;">
+          <dt style="color: var(--accent);">Set</dt><dd>A collectible run on PokeMenu with a name hash, max supply per set, price in wei, and creator. Identified by set ID.</dd>
+          <dt style="color: var(--accent);">Launchpad</dt><dd>The PokeMenu mechanism: open a set for sale so users can mint by paying ETH.</dd>
+          <dt style="color: var(--accent);">PokeBro NFT</dt><dd>ERC721-style NFT with max supply 100000; minted by PokeMenu when users mint from a set.</dd>
+          <dt style="color: var(--accent);">Treasury</dt><dd>Immutable address on PokeMenu that receives the fee portion of each mint.</dd>
+          <dt style="color: var(--accent);">Vault</dt><dd>Immutable address on PokeMenu (e.g. for protocol reserves).</dd>
+          <dt style="color: var(--accent);">Launchpad wallet</dt><dd>Immutable address on PokeMenu that receives half of the (post-fee) mint payment; the other half goes to the set creator.</dd>
+          <dt style="color: var(--accent);">Name hash</dt><dd>Bytes32 identifier for a set (e.g. keccak256 of the set name). Stored on-chain.</dd>
+          <dt style="color: var(--accent);">BPS</dt><dd>Basis points; 10000 BPS = 100%. Fee is (payment × feeBps) / 10000.</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h4>Quick start (users)</h4>
+        <ol style="color: var(--text-dim); font-size: 0.86rem; line-height: 1.7; margin-left: 1.25rem;">
+          <li>Connect your wallet (e.g. MetaMask) via the Connect button.</li>
+          <li>Enter the PokeMenu contract address in the first input and the PokeBro contract address in the second. Get these from the project or block explorer.</li>
+          <li>Open the Sets tab to see available sets and which have sale open.</li>
+          <li>Open the Mint from set tab, choose a set ID and count (1–24). The required ETH is shown.</li>
+          <li>Click Mint and confirm the transaction in your wallet. You will receive PokeBro NFTs.</li>
+          <li>Open My PokeBro NFTs to see tokens you own (scan may be limited to 200).</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h4>Troubleshooting</h4>
+        <ul style="color: var(--text-dim); font-size: 0.85rem; line-height: 1.65; margin-left: 1.25rem;">
+          <li><strong>Mint fails with "sale not open"</strong> — The set sale is closed. Only the contract owner can open it.</li>
+          <li><strong>Mint fails with "exceeds set supply"</strong> — The set has reached its max per set. Choose a lower count or another set.</li>
+          <li><strong>Mint fails with "exceeds global supply"</strong> — PokeBro has reached 100000 minted. No more mints possible.</li>
+          <li><strong>Mint fails with "insufficient payment"</strong> — Send at least (set price × count) wei. Check the required ETH display.</li>
+          <li><strong>Mint fails with "PokeBro not set"</strong> — Owner has not set the PokeBro NFT address in PokeMenu. Contact deployer.</li>
+          <li><strong>Mint fails with "platform paused"</strong> — Owner has paused the platform. Wait or contact deployer.</li>
+          <li><strong>My NFTs empty but I minted</strong> — Ensure the PokeBro address is correct and you are on the right chain. Try Refresh.</li>
+          <li><strong>Sets tab empty</strong> — Ensure PokeMenu address is correct and the contract has at least one set created.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Chain and network</h4>
+        <p style="color: var(--text-dim); font-size: 0.86rem;">Ridda.ai works with any EVM chain where PokeMenu and PokeBro are deployed. Connect your wallet and ensure you are on the same network as the contracts. Switch network in your wallet if needed. Contract addresses are chain-specific; do not reuse mainnet addresses on testnets or vice versa.</p>
+      </div>
+      <div class="card">
+        <h4>Version and support</h4>
+        <p style="color: var(--text-dim); font-size: 0.86rem;">This interface is provided as-is. Smart contract logic is determined by PokeMenu and PokeBro deployments; Ridda.ai only reads and sends transactions. For contract bugs or upgrade paths, refer to the contract owner or deployment documentation. UI version: 1.0.0.</p>
+      </div>
+      <div class="card">
+        <h4>PokeMenu owner flows</h4>
+        <p style="color: var(--text-dim); font-size: 0.85rem; line-height: 1.65;">After deployment, owner calls setPokeBroNft(pokeBroAddress). Create a set with createSet(nameHash, maxPerSet, priceWei); nameHash is typically keccak256(abi.encodePacked("Set Name")). Open the sale with openSale(setId). To stop sales, closeSale(setId). To change price, updateSetPrice(setId, newPriceWei). Optionally setPlatformPaused(true) for emergency stop, or setFeeBps(bps) to change the treasury fee (max 400 BPS). Sweep functions (sweepTreasury, sweepVault, sweepLaunchpad) send contract balance to the respective immutable addresses; use if ETH accumulates.</p>
+      </div>
+      <div class="card">
+        <h4>PokeBro owner flows</h4>
+        <p style="color: var(--text-dim); font-size: 0.85rem; line-height: 1.65;">Deploy PokeBro; minter is deployer by default. Call setMinter(pokeMenuAddress) so PokeMenu can mint. Only one minter at a time. If you need to rotate minter (e.g. new launchpad), call setMinter(newAddress). Token IDs are assigned sequentially from 0; PokeMenu tracks nextTokenId and mints that ID. Transfers and approvals follow ERC721 semantics; use ownerOf(tokenId), balanceOf(account), transferFrom, approve, setApprovalForAll as needed for marketplaces.</p>
+      </div>
+      <div class="card">
+        <h4>PokeMenu events (reference)</h4>
+        <p style="color: var(--text-dim); font-size: 0.8rem;">SetCreated, SetConfigUpdated, CollectibleMinted, LaunchpadSaleOpened, LaunchpadSaleClosed, PokeBroNftSet, TreasurySweep, VaultSweep, LaunchpadSweep, PlatformPaused, FeeBpsUpdated, BatchMinted, SetCreatorUpdated, SetMaxPerSetUpdated, SetNameHashUpdated, SnapshotRecorded, ConfigFrozen, LaunchpadDomainSet.</p>
+      </div>
+      <div class="card">
+        <h4>PokeMenu errors (reference)</h4>
+        <p style="color: var(--text-dim); font-size: 0.8rem;">PMU_ZeroAddress, PMU_ZeroAmount, PMU_PlatformPaused, PMU_SetNotFound, PMU_SaleNotOpen, PMU_SaleAlreadyOpen, PMU_SaleAlreadyClosed, PMU_ExceedsSetSupply, PMU_ExceedsGlobalSupply, PMU_InsufficientPayment, PMU_InvalidFeeBps, PMU_TransferFailed, PMU_Reentrancy, PMU_NotCreator, PMU_MaxSetsReached, PMU_PokeBroNotSet, PMU_ArrayLengthMismatch, PMU_BatchTooLarge, PMU_ZeroMint, PMU_InvalidSetId, PMU_InvalidIndex.</p>
